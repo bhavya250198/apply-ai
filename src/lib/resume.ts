@@ -88,6 +88,16 @@ function extractSkills(text: string) {
   return Array.from(new Set(found));
 }
 
+function displayName(value: string) {
+  const cleaned = value.replace(/\s{2,}/g, " ").trim();
+  if (cleaned === cleaned.toUpperCase() && /[A-Z]/.test(cleaned)) {
+    return cleaned
+      .toLowerCase()
+      .replace(/\b([a-z])/g, (char) => char.toUpperCase());
+  }
+  return cleaned;
+}
+
 function firstMatch(text: string, patterns: RegExp[]) {
   for (const pattern of patterns) {
     const match = text.match(pattern);
@@ -108,27 +118,22 @@ function bulletsFrom(text: string) {
 export function parseResume(raw: string): ResumeProfile {
   const text = raw.replace(/\r/g, "").trim();
   const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
-  const name = lines[0]?.replace(/\s{2,}/g, " ") || "Applicant";
+  const name = displayName(lines[0]?.split("·")[0]?.split("|")[0]?.trim() || "Applicant");
 
   const email = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0];
   const school = firstMatch(text, [
-    /((?:University|College|Institute)[^\n]+)/i,
-    /([^\n]+(?:University|College))/,
-  ]);
+    /((?:University|College) of [A-Za-z .]+)/i,
+    /((?:University|College)[^\n,—-]+)/i,
+  ])?.replace(/\s{2,}/g, " ");
   const program = firstMatch(text, [
-    /Bachelor of ([^\n]+)/i,
-    /B\.?S\.?c?\.? (?:in )?([^\n]+)/i,
-    /(Computer Science[^\n]*)/i,
-    /(Software Engineering[^\n]*)/i,
+    /Bachelor of ([^\n,]+)/i,
+    /B\.?S\.?c?\.? (?:in )?([^\n,]+)/i,
+    /\b(Computer Science|Software Engineering|Computer Engineering)\b/i,
   ]);
-  const year = firstMatch(text, [
-    /\b(\d[A-B])\b/i,
-    /(co-op[^.\n]*)/i,
-    /(class of \d{4})/i,
-  ]);
+  const year = firstMatch(text, [/\b(\d[A-B])\b/i, /(class of \d{4})/i]);
   const location = firstMatch(text, [
-    /^[^\n]*?([A-Z][a-z]+,\s*(?:ON|BC|AB|QC|NS|CA|NY|WA|TX|MA)[^\n]*)/m,
-    /(Waterloo|Toronto|Vancouver|Montreal|New York|San Francisco|Seattle)[^\n,]*/i,
+    /^[^\n]*?([A-Z][a-z]+,\s*(?:ON|BC|AB|QC|NS|CA|NY|WA|TX|MA))\b/m,
+    /(Waterloo|Toronto|Vancouver|Montreal|New York|San Francisco|Seattle)/i,
   ]);
 
   const projectSection = text.split(/PROJECTS/i)[1]?.split(/AWARDS|EXPERIENCE/i)[0] ?? "";
@@ -141,7 +146,7 @@ export function parseResume(raw: string): ResumeProfile {
   const uniqueBullets = Array.from(new Set(bulletsFrom(text))).slice(0, 10);
 
   return {
-    name: name.split("·")[0].split("|")[0].trim(),
+    name,
     email,
     school,
     program,
@@ -156,4 +161,17 @@ export function parseResume(raw: string): ResumeProfile {
 
 export function extractSkillsFromText(text: string) {
   return extractSkills(text);
+}
+
+export function expandSkills(skills: string[]) {
+  const set = new Set(skills.map((skill) => skill.toLowerCase()));
+  if (set.has("typescript")) set.add("javascript");
+  if (set.has("javascript")) set.add("typescript");
+  if (set.has("react") || set.has("next.js") || set.has("node")) {
+    set.add("javascript");
+    set.add("typescript");
+  }
+  if (set.has("postgresql") || set.has("mysql")) set.add("sql");
+  if (set.has("next.js")) set.add("react");
+  return set;
 }

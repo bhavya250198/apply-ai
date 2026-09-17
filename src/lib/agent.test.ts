@@ -24,7 +24,10 @@ describe("resume + scoring", () => {
   const resume = parseResume(SAMPLE_RESUME);
 
   it("extracts the sample student", () => {
-    assert.match(resume.name, /AVERY LANG/i);
+    assert.match(resume.name, /Avery Lang/i);
+    assert.match(resume.school || "", /University of Waterloo/i);
+    assert.equal(resume.year, "3A");
+    assert.ok(!/Bachelor of/.test(resume.school || ""));
     assert.ok(resume.skills.includes("typescript"));
     assert.ok(resume.bullets.length >= 3);
   });
@@ -74,7 +77,9 @@ describe("cover letter", () => {
       snippet: "shopify intern",
     };
     const letter = draftCoverLetter(resume, job, scoreFit(resume, job));
-    assert.match(letter, /AVERY LANG/i);
+    assert.match(letter, /Avery Lang/i);
+    assert.doesNotMatch(letter, /3A, 3A/);
+    assert.match(letter, /Computer Science student \(3A\)/);
     assert.match(letter, /Shopify/);
     assert.match(letter, /Winter 2027/);
     assert.match(letter, /reread the letter myself/i);

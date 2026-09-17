@@ -1,4 +1,4 @@
-import { extractSkillsFromText } from "./resume";
+import { expandSkills, extractSkillsFromText } from "./resume";
 import type { FitBand, FitScore, JobPosting, ResumeProfile } from "./types";
 
 type Profile = ResumeProfile;
@@ -38,7 +38,7 @@ function locationBoost(resume: Profile, job: JobPosting) {
 }
 
 export function scoreFit(resume: Profile, job: JobPosting): FitScore {
-  const resumeSkills = new Set(resume.skills.map((s) => s.toLowerCase()));
+  const resumeSkills = expandSkills(resume.skills);
   const jobSkills = extractSkillsFromText(`${job.title}\n${job.description}`);
   const matched = jobSkills.filter((skill) => resumeSkills.has(skill));
   const missing = jobSkills.filter((skill) => !resumeSkills.has(skill)).slice(0, 6);

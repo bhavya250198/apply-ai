@@ -1,8 +1,20 @@
 import type { FitScore, JobPosting, ResumeProfile } from "./types";
 
-function firstSentence(text: string) {
-  const clean = text.replace(/\s+/g, " ").trim();
-  const match = clean.match(/(.+?[.!?])\s/);
+function firstSentence(text: string, title?: string) {
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const body =
+    lines.find((line) => {
+      if (line.length < 48) return false;
+      if (title && line.toLowerCase().startsWith(title.toLowerCase().slice(0, 18))) {
+        return false;
+      }
+      return true;
+    }) || text;
+  const clean = body.replace(/\s+/g, " ").trim();
+  const match = clean.match(/(.+?[.!?])(?:\s|$)/);
   return (match?.[1] || clean).slice(0, 220);
 }
 
@@ -45,12 +57,13 @@ export function draftCoverLetter(
     .join(", ");
   const school = resume.school || "my university";
   const program = resume.program || "Computer Science";
-  const year = resume.year ? `, ${resume.year}` : "";
-  const hook = firstSentence(job.description);
+  const yearBit = resume.year ? ` (${resume.year})` : "";
+  const hook = firstSentence(job.description, job.title);
   const productCue = job.department ? ` on ${job.department}` : "";
-  const whyCompany = hook.startsWith(job.title)
-    ? `I want to spend a term${productCue} because the work is a close match for the systems and product engineering I already practice.`
-    : `I was drawn to this posting in particular: ${hook}`;
+  const whyCompany =
+    !hook || hook.length < 40
+      ? `I want to spend a term${productCue} because the work is a close match for the systems and product engineering I already practice.`
+      : `I was drawn to this posting in particular: ${hook}`;
 
   const evidence = bullets
     .map((bullet, index) => {
@@ -74,7 +87,7 @@ export function draftCoverLetter(
 
   return `${greeting(job.company)}
 
-I am ${resume.name}, a ${program} student at ${school}${year}, applying for ${job.title}. ${whyCompany}
+I am ${resume.name}, a ${program} student${yearBit} at ${school}, applying for ${job.title}. ${whyCompany}
 
 ${evidence} Those are the same muscles this role asks for: shipping with ${skills || "the stack on the posting"}, writing tests, and explaining tradeoffs in review.
 
